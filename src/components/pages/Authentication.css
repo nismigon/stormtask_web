@@ -1,0 +1,35 @@
+.container {
+    min-height: 100vh;
+    min-width: 100vh;
+    width : 100%;
+    height: 100%;
+    margin: auto;
+    display : flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-div {
+    background-color: white;
+    padding: 5%;
+    min-width: 80vh;
+    border : solid 3px #F8F8F8;
+    border-radius: 30px;
+    display : flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: 30px 30px 30px lightgrey;
+}
+
+.auth-div > h2 {
+    text-align: center;
+}
+
+.centered {
+    text-align: center;
+    margin-top: 5%;
+}
+
+form > div {
+    margin: 3%;
+}
