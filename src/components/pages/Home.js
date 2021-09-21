@@ -7,92 +7,80 @@ import axios from 'axios';
 import configuration from '../../configuration.json'
 import ModalCreateGroup from '../modal/ModalCreateGroup';
 import ModalCreateTask from '../modal/ModalCreateTask';
+import {useState, useEffect} from 'react'
+import ModalModifyGroup from '../modal/ModalModifyGroup';
+import ModalDeleteGroup from '../modal/ModalDeleteGroup';
 
-class Home extends React.Component {
-    constructor(props) {
-        super(props);
-        const jwt_token = Cookies.get("JWT_token")
-        if (jwt_token === undefined) {
-            this.props.history.push("/")
-        }
-        this.state = {
-            groups : [],
-            active : "",
-            showCreateGroupModal : false,
-            showCreateTaskModal : false,
-            showAlert : false,
-            alertMessage : ""
-        }
+function Home() {
+    
+    const jwt_token = Cookies.get("JWT_token")
+    if (jwt_token === undefined) {
+        this.props.history.push("/")
     }
 
-    componentDidMount() {
-        this.getBackendData();
-    }
+    const [groups, setGroups] = useState([]);
+    const [active, setActive] = useState("");
+    const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+    const [showModifyGroupModal, setShowModifyGroupModal] = useState(false);
+    const [showDeleteGroupModal, setShowDeleteGroupModal] = useState(false);
+    const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
+    const [showAlert, setShowAlert] = useState(false);
+    const [alertMessage, setAlertMessage] = useState("");
 
-    getBackendData = () => {
+    const getBackendData = () => {
         axios.get(configuration.BACKEND_URL + "/group", {withCredentials: true}).then((response) => {
-            const groups = response.data
-            this.setState({
-                groups : groups
-            })
+            setGroups(response.data);
+        }).catch(() => {
+            setShowAlert(true);
+            setAlertMessage("Failed to get data from the server")
         })
     }
 
-    changeActive = (newActive) => {
-        this.setState({
-            active : newActive
-        })
-    }
-
-    showCreateGroupModal = () => {
-        this.setState({
-            showCreateGroupModal : true
-        })
-    }
-
-    hideCreateGroupModal = () => {
-        this.setState({
-            showCreateGroupModal : false
-        })
-    }
-
-    showCreateTaskModal = () => {
-        this.setState({
-            showCreateTaskModal : true
-        })
-    }
-
-    hideCreateTaskModal = () => {
-        this.setState({
-            showCreateTaskModal : false
-        })
-    }
-
-    createGroup = (group) => {
+    const createGroup = (group) => {
         axios.post(configuration.BACKEND_URL + '/group', {
             name : group
         }, {withCredentials: true}).then(() => {
-            this.setState({
-                showCreateGroupModal : false
-            })
-            this.getBackendData()
+            setShowCreateGroupModal(false)
+            getBackendData()
         }).catch(() => {
-            this.setState({
-                showCreateGroupModal : false,
-                showAlert : true,
-                alertMessage : "Failed to add " + group
-            })
+            setShowCreateGroupModal(false)
+            setShowAlert(true)
+            setAlertMessage("Failed to add " + group)
         })
     }
 
-    setShowAlert = (show) => {
-        this.setState({
-            showAlert : show
+    const modifyGroup = (groupID, groupValue) => {
+        axios.put(configuration.BACKEND_URL + '/group', {
+            id : parseInt(groupID, 10),
+            name : groupValue
+        }, {withCredentials: true}).then(() => {
+            setShowModifyGroupModal(false)
+            getBackendData()
+        }).catch(() => {
+            setShowModifyGroupModal(false)
+            setShowAlert(true)
+            setAlertMessage("Failed to modify " + getGroup(groupID)['Name'])
         })
     }
 
-    getGroup = (groupID) => {
-        for (const element of this.state.groups) {
+    const deleteGroup = (groupID) => {
+        axios.delete(configuration.BACKEND_URL + '/group', 
+            {
+                withCredentials: true,
+                data : { id : parseInt(groupID, 10) }
+            }
+        ).then(() => {
+            setShowDeleteGroupModal(false)
+            getBackendData()
+        }).catch(() => {
+            setShowDeleteGroupModal(false)
+            setShowAlert(true)
+            setAlertMessage("Failed to delete " + getGroup(groupID)['Name'])
+        })
+    }
+
+    const getGroup = (groupID) => {
+        for (const element of groups) {
             if (element.ID === parseInt(groupID, 10)) {
                 return element
             } 
@@ -100,42 +88,69 @@ class Home extends React.Component {
         return {}
     }
 
-    render() {
-        return (
-            <Fragment>
-                {this.state.showCreateGroupModal ? 
-                    <ModalCreateGroup 
-                        show={this.state.showCreateGroupModal} 
-                        onHide={this.hideCreateGroupModal}
-                        onCreate={this.createGroup} /> 
-                    : <Fragment/> 
-                }
-                {this.state.showCreateTaskModal ? 
-                    <ModalCreateTask 
-                        show={this.state.showCreateTaskModal} 
-                        onHide={this.hideCreateTaskModal}
-                         /> 
-                    : <Fragment/> 
-                }
-                <Container fluid>
-                    <Row>
-                        <Col className="col-3 shadow min-vh-100 p-3">
-                            <Sidebar groups={this.state.groups} active={this.state.active} onSelect={this.changeActive} onCreate={this.showCreateGroupModal}/>
-                        </Col>
-                        <Col className="col-9 p-3">
-                            {this.state.showAlert ? <Alert 
-                                variant="danger"
-                                onClose={() => this.setShowAlert(false)} 
-                                dismissible
-                                >{this.state.alertMessage}
-                                </Alert> : <Fragment/>}
-                            {this.state.active ? <TaskView group={this.getGroup(this.state.active)} tasks={[]} onCreate={this.showCreateTaskModal}/> : <Fragment /> }
-                        </Col>
-                    </Row>
-                </Container>
-            </Fragment>
-        )
-    }
+    useEffect(() => {
+        getBackendData();
+    }, [])
+
+    return (
+        <Fragment>
+            <ModalCreateGroup 
+                show={showCreateGroupModal} 
+                onHide={() => setShowCreateGroupModal(false)}
+                onCreate={createGroup} 
+            /> 
+            <ModalModifyGroup
+                show={showModifyGroupModal}
+                onHide={() => setShowModifyGroupModal(false)}
+                onSubmit={modifyGroup}
+                groupID={active}
+                groupValue={getGroup(active)["Name"]}
+            />
+            <ModalDeleteGroup 
+                show={showDeleteGroupModal}
+                onHide={() => setShowDeleteGroupModal(false)}
+                onSubmit={deleteGroup}
+                groupID={active}
+                groupValue={getGroup(active)["Name"]}
+            />
+            <ModalCreateTask 
+                show={showCreateTaskModal} 
+                onHide={() => setShowCreateTaskModal(false)}
+            />
+            <Container fluid>
+                <Row>
+                    <Col className="col-3 shadow min-vh-100 p-3">
+                        <Sidebar 
+                            groups={groups} 
+                            active={active} 
+                            onSelect={(newActive) => setActive(newActive)} 
+                            onCreate={() => setShowCreateGroupModal(true)}
+                            onModify={() => setShowModifyGroupModal(true)}
+                            onDelete={() => setShowDeleteGroupModal(true)}
+                        />
+
+                    </Col>
+                    <Col className="col-9 p-3">
+                        {showAlert ? <Alert 
+                            variant="danger"
+                            onClose={() => setShowAlert(false)} 
+                            dismissible
+                            >{alertMessage}
+                            </Alert> 
+                            : <Fragment/>
+                        }
+                        {active ? 
+                            <TaskView 
+                                group={getGroup(active)} 
+                                tasks={[]} 
+                                onCreate={() => showCreateTaskModal(true)}/> 
+                            : <Fragment /> 
+                        }
+                    </Col>
+                </Row>
+            </Container>
+        </Fragment>
+    )
 }
 
 export default Home

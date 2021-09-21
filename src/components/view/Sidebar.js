@@ -2,7 +2,7 @@ import { Nav, ButtonGroup, Button } from 'react-bootstrap';
 
 function Sidebar(props) {
     
-    const { groups, active, onCreate, onSelect } = props
+    const { groups, active, onCreate, onSelect, onModify, onDelete } = props
     
     return(
        <div className="h-100 d-flex flex-column">
@@ -26,8 +26,8 @@ function Sidebar(props) {
                     <h5>Group : </h5>
                     <ButtonGroup>
                         <Button variant="success" onClick={onCreate}>Create</Button>
-                        <Button variant="warning">Modify</Button>
-                        <Button variant="danger">Delete</Button>
+                        <Button variant="warning" onClick={onModify}>Modify</Button>
+                        <Button variant="danger" onClick={onDelete}>Delete</Button>
                     </ButtonGroup>
                 </div>
             </div>
